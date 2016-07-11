@@ -17,6 +17,7 @@
     <xsl:param name="cr-uri" select="'https://catalog.clarin.eu/ds/ComponentRegistry/rest/registry'"/>
     <xsl:param name="cr-extension-xsd" select="'/xsd'"/>
     <xsl:param name="cr-extension-xml" select="'/xml'"/>
+    <xsl:param name="avoid-cmdp-prefix" select="'no'" />
     
     <xsl:param name="escape" select="'ccmmddii_'"/>
 
@@ -155,7 +156,9 @@
     <xsl:template match="/cmd0:CMD">
         <cmd:CMD>
             <xsl:namespace name="cmd" select="'http://www.clarin.eu/cmd/1'"/>
-            <xsl:namespace name="cmdp" select="$cmd-profile-uri"/>
+            <xsl:if test="$avoid-cmdp-prefix != 'yes'">
+                <xsl:namespace name="cmdp" select="$cmd-profile-uri"/>
+            </xsl:if>
             <xsl:apply-templates select="@* except (@xsi:schemaLocation|@xsi:noNamespaceSchemaLocation)"/>
             <xsl:attribute name="xsi:schemaLocation">
                 <xsl:value-of select="$cmd-uri"/>
@@ -235,14 +238,23 @@
     <xsl:template match="/cmd0:CMD//*" priority="1">
         <xsl:element name="cmd:{local-name()}">
             <xsl:apply-templates select="@*|node()"/>
-        </xsl:element>
+        </xsl:element>   
     </xsl:template>
     
     <!-- put payload in the profile namespace -->
     <xsl:template match="/cmd0:CMD/cmd0:Components//*" priority="2">
-        <xsl:element namespace="{$cmd-profile-uri}" name="cmdp:{local-name()}">
-            <xsl:apply-templates select="@*|node()"/>
-        </xsl:element>
+        <xsl:choose>
+            <xsl:when test="$avoid-cmdp-prefix = 'yes'">
+                <xsl:element namespace="{$cmd-profile-uri}" name="{local-name()}">
+                    <xsl:apply-templates select="@*|node()"/>
+                </xsl:element>
+            </xsl:when>
+            <xsl:otherwise>
+                <xsl:element namespace="{$cmd-profile-uri}" name="cmdp:{local-name()}">
+                    <xsl:apply-templates select="@*|node()"/>
+                </xsl:element>               
+            </xsl:otherwise>
+        </xsl:choose>       
     </xsl:template>
     
     <!-- unescape downgraded CMDI 1.2 attributes -->
